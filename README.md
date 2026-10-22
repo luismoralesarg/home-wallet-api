@@ -1,1 +1,21 @@
 # home-wallet-api
+
+Backend (Go + Fiber + Postgres) de la app de finanzas del hogar. Cliente: [home-wallet-android](https://github.com/luismoralesarg/home-wallet-android).
+
+Ver `CLAUDE.md` para arquitectura y reglas, y `openapi.yaml` para el contrato de la API.
+
+## Validar la spec
+
+```sh
+npm install
+npm run lint:api
+```
+
+## Base de datos
+
+Migraciones en `migrations/` (golang-migrate):
+
+```sh
+migrate -path migrations -database "$DATABASE_URL" up
+psql "$DATABASE_URL" -f scripts/seed_users.sql   # después de poner las passwords reales
+```

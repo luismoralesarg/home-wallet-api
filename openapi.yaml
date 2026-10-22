@@ -1,0 +1,1531 @@
+openapi: 3.1.0
+info:
+  title: Home Wallet API
+  version: 0.1.0
+  description: |
+    API de la app de finanzas del hogar (dos usuarios).
+
+    Convenciones:
+    - Montos: string decimal (`"1234.50"`), nunca número.
+    - Monedas: `ARS` | `USD`. Todo objeto monetario en USD incluye también `amount_ars` y `fx_rate`.
+    - Fechas: ISO 8601. "Día" y "mes" se definen en `America/Argentina/Mendoza`.
+    - Meses (`month`): formato `YYYY-MM`.
+    - Errores: `{code, message}`.
+servers:
+  - url: http://localhost:8080
+    description: Desarrollo
+security:
+  - bearerAuth: []
+tags:
+  - name: auth
+  - name: exchange-rate
+  - name: categories
+  - name: transactions
+  - name: cards
+  - name: loans
+  - name: subscriptions
+  - name: dashboard
+
+paths:
+  /auth/login:
+    post:
+      tags: [auth]
+      operationId: login
+      summary: Iniciar sesión
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Sesión iniciada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          $ref: '#/components/responses/Error'
+  /me:
+    get:
+      tags: [auth]
+      operationId: getMe
+      summary: Usuario autenticado
+      responses:
+        '200':
+          description: Usuario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Error'
+
+  /exchange-rate/today:
+    get:
+      tags: [exchange-rate]
+      operationId: getTodayExchangeRate
+      summary: Cotización del dólar oficial del día
+      responses:
+        '200':
+          description: Cotización
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExchangeRate'
+        '401':
+          $ref: '#/components/responses/Error'
+
+  /categories:
+    get:
+      tags: [categories]
+      operationId: listCategories
+      summary: Listar categorías
+      parameters:
+        - name: kind
+          in: query
+          schema:
+            $ref: '#/components/schemas/CategoryKind'
+      responses:
+        '200':
+          description: Categorías
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+        '401':
+          $ref: '#/components/responses/Error'
+    post:
+      tags: [categories]
+      operationId: createCategory
+      summary: Crear categoría
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryInput'
+      responses:
+        '201':
+          description: Creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+  /categories/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      tags: [categories]
+      operationId: getCategory
+      summary: Obtener categoría
+      responses:
+        '200':
+          description: Categoría
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '404':
+          $ref: '#/components/responses/Error'
+    patch:
+      tags: [categories]
+      operationId: updateCategory
+      summary: Editar categoría
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryPatch'
+      responses:
+        '200':
+          description: Actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '404':
+          $ref: '#/components/responses/Error'
+    delete:
+      tags: [categories]
+      operationId: deleteCategory
+      summary: Borrar categoría
+      responses:
+        '204':
+          description: Borrada
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+
+  /transactions:
+    get:
+      tags: [transactions]
+      operationId: listTransactions
+      summary: Listar ingresos y gastos en efectivo/cuenta
+      parameters:
+        - $ref: '#/components/parameters/MonthQuery'
+        - name: kind
+          in: query
+          schema:
+            $ref: '#/components/schemas/CategoryKind'
+        - name: category_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: user_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: Página de transacciones
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionPage'
+        '401':
+          $ref: '#/components/responses/Error'
+    post:
+      tags: [transactions]
+      operationId: createTransaction
+      summary: Crear ingreso o gasto
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionInput'
+      responses:
+        '201':
+          description: Creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+  /transactions/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      tags: [transactions]
+      operationId: getTransaction
+      summary: Obtener transacción
+      responses:
+        '200':
+          description: Transacción
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '404':
+          $ref: '#/components/responses/Error'
+    patch:
+      tags: [transactions]
+      operationId: updateTransaction
+      summary: Editar transacción
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionPatch'
+      responses:
+        '200':
+          description: Actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        '404':
+          $ref: '#/components/responses/Error'
+    delete:
+      tags: [transactions]
+      operationId: deleteTransaction
+      summary: Borrar transacción
+      responses:
+        '204':
+          description: Borrada
+        '404':
+          $ref: '#/components/responses/Error'
+
+  /cards:
+    get:
+      tags: [cards]
+      operationId: listCards
+      summary: Listar tarjetas con resumen abierto, próximos 3 resúmenes y deuda futura en cuotas
+      responses:
+        '200':
+          description: Tarjetas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CardOverview'
+        '401':
+          $ref: '#/components/responses/Error'
+    post:
+      tags: [cards]
+      operationId: createCard
+      summary: Crear tarjeta
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CardInput'
+      responses:
+        '201':
+          description: Creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+        '400':
+          $ref: '#/components/responses/Error'
+  /cards/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      tags: [cards]
+      operationId: getCard
+      summary: Obtener tarjeta con su resumen
+      responses:
+        '200':
+          description: Tarjeta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardOverview'
+        '404':
+          $ref: '#/components/responses/Error'
+    patch:
+      tags: [cards]
+      operationId: updateCard
+      summary: Editar tarjeta
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CardPatch'
+      responses:
+        '200':
+          description: Actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+        '404':
+          $ref: '#/components/responses/Error'
+    delete:
+      tags: [cards]
+      operationId: deleteCard
+      summary: Borrar tarjeta
+      responses:
+        '204':
+          description: Borrada
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+  /cards/{id}/purchases:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    post:
+      tags: [cards]
+      operationId: createCardPurchase
+      summary: Cargar compra con tarjeta (genera cuotas)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CardPurchaseInput'
+      responses:
+        '201':
+          description: Creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardPurchase'
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+  /cards/{id}/purchases/{purchaseId}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+      - name: purchaseId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    patch:
+      tags: [cards]
+      operationId: updateCardPurchase
+      summary: Editar compra (recalcula cuotas)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CardPurchasePatch'
+      responses:
+        '200':
+          description: Actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardPurchase'
+        '404':
+          $ref: '#/components/responses/Error'
+    delete:
+      tags: [cards]
+      operationId: deleteCardPurchase
+      summary: Borrar compra (y sus cuotas)
+      responses:
+        '204':
+          description: Borrada
+        '404':
+          $ref: '#/components/responses/Error'
+  /cards/{id}/statements/{month}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+      - $ref: '#/components/parameters/MonthPath'
+    get:
+      tags: [cards]
+      operationId: getCardStatement
+      summary: Detalle del resumen de un mes
+      responses:
+        '200':
+          description: Resumen con las cuotas que lo componen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatementDetail'
+        '404':
+          $ref: '#/components/responses/Error'
+  /cards/{id}/statements/{month}/adjustment:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+      - $ref: '#/components/parameters/MonthPath'
+    put:
+      tags: [cards]
+      operationId: setStatementAdjustment
+      summary: Ajuste manual de saldo previo al uso de la app
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StatementAdjustmentInput'
+      responses:
+        '200':
+          description: Resumen actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatementDetail'
+        '404':
+          $ref: '#/components/responses/Error'
+  /cards/{id}/statements/{month}/pay:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+      - $ref: '#/components/parameters/MonthPath'
+    post:
+      tags: [cards]
+      operationId: payCardStatement
+      summary: Marcar resumen como pagado
+      responses:
+        '200':
+          description: Resumen pagado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatementDetail'
+        '404':
+          $ref: '#/components/responses/Error'
+
+  /loans:
+    get:
+      tags: [loans]
+      operationId: listLoans
+      summary: Listar préstamos y vehículo
+      responses:
+        '200':
+          description: Préstamos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Loan'
+    post:
+      tags: [loans]
+      operationId: createLoan
+      summary: Crear préstamo (genera una cuota por mes)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoanInput'
+      responses:
+        '201':
+          description: Creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoanDetail'
+        '400':
+          $ref: '#/components/responses/Error'
+  /loans/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      tags: [loans]
+      operationId: getLoan
+      summary: Detalle con todas las cuotas
+      responses:
+        '200':
+          description: Préstamo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoanDetail'
+        '404':
+          $ref: '#/components/responses/Error'
+    patch:
+      tags: [loans]
+      operationId: updateLoan
+      summary: Editar nombre del préstamo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoanPatch'
+      responses:
+        '200':
+          description: Actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Loan'
+        '404':
+          $ref: '#/components/responses/Error'
+    delete:
+      tags: [loans]
+      operationId: deleteLoan
+      summary: Borrar préstamo
+      responses:
+        '204':
+          description: Borrado
+        '404':
+          $ref: '#/components/responses/Error'
+  /loans/{id}/installments/{month}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+      - $ref: '#/components/parameters/MonthPath'
+    patch:
+      tags: [loans]
+      operationId: updateLoanInstallment
+      summary: Ajustar una cuota puntual o marcarla pagada
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoanInstallmentPatch'
+      responses:
+        '200':
+          description: Cuota actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoanInstallment'
+        '404':
+          $ref: '#/components/responses/Error'
+  /loans/{id}/adjust:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    post:
+      tags: [loans]
+      operationId: adjustLoan
+      summary: Aumento a todas las cuotas no pagadas desde un mes
+      description: Se envía `percent` o `amount`, no ambos.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoanAdjustInput'
+      responses:
+        '200':
+          description: Préstamo con cuotas ajustadas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoanDetail'
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+
+  /subscriptions:
+    get:
+      tags: [subscriptions]
+      operationId: listSubscriptions
+      summary: Listar suscripciones con total mensual
+      responses:
+        '200':
+          description: Suscripciones
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionList'
+    post:
+      tags: [subscriptions]
+      operationId: createSubscription
+      summary: Crear suscripción
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionInput'
+      responses:
+        '201':
+          description: Creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '400':
+          $ref: '#/components/responses/Error'
+  /subscriptions/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      tags: [subscriptions]
+      operationId: getSubscription
+      summary: Obtener suscripción
+      responses:
+        '200':
+          description: Suscripción
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '404':
+          $ref: '#/components/responses/Error'
+    patch:
+      tags: [subscriptions]
+      operationId: updateSubscription
+      summary: Editar suscripción
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionPatch'
+      responses:
+        '200':
+          description: Actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '404':
+          $ref: '#/components/responses/Error'
+    delete:
+      tags: [subscriptions]
+      operationId: deleteSubscription
+      summary: Borrar suscripción
+      responses:
+        '204':
+          description: Borrada
+        '404':
+          $ref: '#/components/responses/Error'
+  /subscriptions/{id}/pause:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    post:
+      tags: [subscriptions]
+      operationId: pauseSubscription
+      summary: Pausar suscripción
+      responses:
+        '200':
+          description: Pausada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '404':
+          $ref: '#/components/responses/Error'
+  /subscriptions/{id}/resume:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    post:
+      tags: [subscriptions]
+      operationId: resumeSubscription
+      summary: Reactivar suscripción
+      responses:
+        '200':
+          description: Reactivada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '404':
+          $ref: '#/components/responses/Error'
+
+  /dashboard/daily:
+    get:
+      tags: [dashboard]
+      operationId: getDailyIndicator
+      summary: Indicador diario ("Podés gastar hoy")
+      responses:
+        '200':
+          description: Indicador
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyIndicator'
+        '401':
+          $ref: '#/components/responses/Error'
+  /dashboard/summary:
+    get:
+      tags: [dashboard]
+      operationId: getMonthlySummary
+      summary: Métricas del mes
+      parameters:
+        - name: month
+          in: query
+          description: Mes a consultar. Por defecto, el mes actual.
+          schema:
+            $ref: '#/components/schemas/Month'
+      responses:
+        '200':
+          description: Resumen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MonthlySummary'
+        '401':
+          $ref: '#/components/responses/Error'
+  /dashboard/upcoming-payments:
+    get:
+      tags: [dashboard]
+      operationId: getUpcomingPayments
+      summary: Próximos pagos ordenados por fecha
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Próximos pagos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UpcomingPayment'
+        '401':
+          $ref: '#/components/responses/Error'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    MonthPath:
+      name: month
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/Month'
+    MonthQuery:
+      name: month
+      in: query
+      description: Filtra por mes (hora Mendoza).
+      schema:
+        $ref: '#/components/schemas/Month'
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 30
+    Offset:
+      name: offset
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          examples: [invalid_credentials]
+        message:
+          type: string
+
+    Money:
+      type: string
+      pattern: '^-?\d+(\.\d{1,2})?$'
+      description: Decimal como string.
+      examples: ['1234.50']
+    Currency:
+      type: string
+      enum: [ARS, USD]
+    Month:
+      type: string
+      pattern: '^\d{4}-(0[1-9]|1[0-2])$'
+      examples: ['2026-10']
+    Date:
+      type: string
+      format: date
+    CategoryKind:
+      type: string
+      enum: [income, expense]
+
+    UserRef:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+    User:
+      type: object
+      required: [id, username]
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+          format: password
+    LoginResponse:
+      type: object
+      required: [token, expires_at, user]
+      properties:
+        token:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+        user:
+          $ref: '#/components/schemas/User'
+
+    ExchangeRate:
+      type: object
+      required: [date, currency, official_buy, official_sell, fetched_at]
+      properties:
+        date:
+          $ref: '#/components/schemas/Date'
+        currency:
+          type: string
+          enum: [USD]
+        official_buy:
+          $ref: '#/components/schemas/Money'
+        official_sell:
+          $ref: '#/components/schemas/Money'
+          description: Valor usado para convertir.
+        fetched_at:
+          type: string
+          format: date-time
+
+    Category:
+      type: object
+      required: [id, name, kind, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        kind:
+          $ref: '#/components/schemas/CategoryKind'
+        created_at:
+          type: string
+          format: date-time
+    CategoryInput:
+      type: object
+      required: [name, kind]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        kind:
+          $ref: '#/components/schemas/CategoryKind'
+    CategoryPatch:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+
+    MoneyFields:
+      type: object
+      description: Campos monetarios comunes. En ARS, `fx_rate` es "1" y `amount_ars` = `amount`.
+      required: [amount, currency, fx_rate, amount_ars]
+      properties:
+        amount:
+          $ref: '#/components/schemas/Money'
+        currency:
+          $ref: '#/components/schemas/Currency'
+        fx_rate:
+          type: string
+          description: Cotización usada (venta). "1" para ARS.
+          examples: ['1250.00']
+        amount_ars:
+          $ref: '#/components/schemas/Money'
+
+    Transaction:
+      allOf:
+        - $ref: '#/components/schemas/MoneyFields'
+        - type: object
+          required: [id, kind, category_id, description, occurred_at, created_by, created_at]
+          properties:
+            id:
+              type: string
+              format: uuid
+            kind:
+              $ref: '#/components/schemas/CategoryKind'
+            category_id:
+              type: string
+              format: uuid
+            description:
+              type: string
+            occurred_at:
+              type: string
+              format: date-time
+            created_by:
+              $ref: '#/components/schemas/UserRef'
+            created_at:
+              type: string
+              format: date-time
+    TransactionInput:
+      type: object
+      required: [kind, amount, currency, category_id]
+      properties:
+        kind:
+          $ref: '#/components/schemas/CategoryKind'
+        amount:
+          $ref: '#/components/schemas/Money'
+        currency:
+          $ref: '#/components/schemas/Currency'
+        category_id:
+          type: string
+          format: uuid
+        description:
+          type: string
+        occurred_at:
+          type: string
+          format: date-time
+          description: Por defecto, ahora.
+    TransactionPatch:
+      type: object
+      properties:
+        amount:
+          $ref: '#/components/schemas/Money'
+        currency:
+          $ref: '#/components/schemas/Currency'
+        category_id:
+          type: string
+          format: uuid
+        description:
+          type: string
+        occurred_at:
+          type: string
+          format: date-time
+    TransactionPage:
+      type: object
+      required: [items, total, limit, offset]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    Card:
+      type: object
+      required: [id, name, last4, closing_day, due_day, created_by, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        last4:
+          type: string
+          pattern: '^\d{4}$'
+        closing_day:
+          type: integer
+          minimum: 1
+          maximum: 31
+        due_day:
+          type: integer
+          minimum: 1
+          maximum: 31
+        created_by:
+          $ref: '#/components/schemas/UserRef'
+        created_at:
+          type: string
+          format: date-time
+    CardInput:
+      type: object
+      required: [name, closing_day, due_day]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        last4:
+          type: string
+          pattern: '^\d{4}$'
+        closing_day:
+          type: integer
+          minimum: 1
+          maximum: 31
+        due_day:
+          type: integer
+          minimum: 1
+          maximum: 31
+    CardPatch:
+      type: object
+      properties:
+        name:
+          type: string
+        last4:
+          type: string
+          pattern: '^\d{4}$'
+        closing_day:
+          type: integer
+          minimum: 1
+          maximum: 31
+        due_day:
+          type: integer
+          minimum: 1
+          maximum: 31
+    StatementSummary:
+      type: object
+      required: [month, closing_date, due_date, installments_total_ars, adjustment_ars, total_ars, paid]
+      properties:
+        month:
+          $ref: '#/components/schemas/Month'
+          description: Mes de cierre del resumen.
+        closing_date:
+          $ref: '#/components/schemas/Date'
+        due_date:
+          $ref: '#/components/schemas/Date'
+        installments_total_ars:
+          $ref: '#/components/schemas/Money'
+        adjustment_ars:
+          $ref: '#/components/schemas/Money'
+        total_ars:
+          $ref: '#/components/schemas/Money'
+          description: Cuotas + ajuste.
+        paid:
+          type: boolean
+        paid_at:
+          type:
+            - string
+            - 'null'
+          format: date-time
+    CardOverview:
+      allOf:
+        - $ref: '#/components/schemas/Card'
+        - type: object
+          required: [open_statement, upcoming_statements, future_installments_ars]
+          properties:
+            open_statement:
+              $ref: '#/components/schemas/StatementSummary'
+            upcoming_statements:
+              type: array
+              maxItems: 3
+              items:
+                $ref: '#/components/schemas/StatementSummary'
+            future_installments_ars:
+              $ref: '#/components/schemas/Money'
+              description: Total comprometido en cuotas futuras (resúmenes aún no cerrados).
+    CardPurchase:
+      allOf:
+        - $ref: '#/components/schemas/MoneyFields'
+        - type: object
+          required: [id, card_id, installments, category_id, description, purchased_at, statement_due_date, created_by, created_at]
+          properties:
+            id:
+              type: string
+              format: uuid
+            card_id:
+              type: string
+              format: uuid
+            installments:
+              type: integer
+              minimum: 1
+            category_id:
+              type: string
+              format: uuid
+            description:
+              type: string
+            purchased_at:
+              type: string
+              format: date-time
+            statement_due_date:
+              $ref: '#/components/schemas/Date'
+              description: Vencimiento del resumen de la primera cuota.
+            created_by:
+              $ref: '#/components/schemas/UserRef'
+            created_at:
+              type: string
+              format: date-time
+    CardPurchaseInput:
+      type: object
+      required: [amount, currency, category_id]
+      properties:
+        amount:
+          $ref: '#/components/schemas/Money'
+        currency:
+          $ref: '#/components/schemas/Currency'
+        installments:
+          type: integer
+          minimum: 1
+          default: 1
+        category_id:
+          type: string
+          format: uuid
+        description:
+          type: string
+        purchased_at:
+          type: string
+          format: date-time
+          description: Por defecto, ahora.
+    CardPurchasePatch:
+      type: object
+      properties:
+        amount:
+          $ref: '#/components/schemas/Money'
+        currency:
+          $ref: '#/components/schemas/Currency'
+        installments:
+          type: integer
+          minimum: 1
+        category_id:
+          type: string
+          format: uuid
+        description:
+          type: string
+        purchased_at:
+          type: string
+          format: date-time
+    StatementInstallment:
+      type: object
+      required: [purchase_id, description, purchased_at, installment_number, installments, amount_ars, category_id]
+      properties:
+        purchase_id:
+          type: string
+          format: uuid
+        description:
+          type: string
+        purchased_at:
+          type: string
+          format: date-time
+        installment_number:
+          type: integer
+        installments:
+          type: integer
+        amount_ars:
+          $ref: '#/components/schemas/Money'
+        original_amount:
+          $ref: '#/components/schemas/Money'
+        original_currency:
+          $ref: '#/components/schemas/Currency'
+        category_id:
+          type: string
+          format: uuid
+        created_by:
+          $ref: '#/components/schemas/UserRef'
+    StatementDetail:
+      allOf:
+        - $ref: '#/components/schemas/StatementSummary'
+        - type: object
+          required: [card_id, items]
+          properties:
+            card_id:
+              type: string
+              format: uuid
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/StatementInstallment'
+    StatementAdjustmentInput:
+      type: object
+      required: [amount_ars]
+      properties:
+        amount_ars:
+          $ref: '#/components/schemas/Money'
+
+    LoanKind:
+      type: string
+      enum: [loan, vehicle]
+    LoanInstallment:
+      type: object
+      required: [month, amount, amount_ars, paid]
+      properties:
+        month:
+          $ref: '#/components/schemas/Month'
+        amount:
+          $ref: '#/components/schemas/Money'
+        amount_ars:
+          $ref: '#/components/schemas/Money'
+        paid:
+          type: boolean
+    Loan:
+      allOf:
+        - $ref: '#/components/schemas/MoneyFields'
+        - type: object
+          description: "`amount` es la cuota base."
+          required: [id, name, kind, start_month, end_month, current_installment, remaining_installments, remaining_total_ars, created_by, created_at]
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            kind:
+              $ref: '#/components/schemas/LoanKind'
+            start_month:
+              $ref: '#/components/schemas/Month'
+            end_month:
+              $ref: '#/components/schemas/Month'
+            current_installment:
+              description: Cuota del mes actual (null si no hay).
+              oneOf:
+                - $ref: '#/components/schemas/LoanInstallment'
+                - type: 'null'
+            remaining_installments:
+              type: integer
+            remaining_total_ars:
+              $ref: '#/components/schemas/Money'
+            created_by:
+              $ref: '#/components/schemas/UserRef'
+            created_at:
+              type: string
+              format: date-time
+    LoanDetail:
+      allOf:
+        - $ref: '#/components/schemas/Loan'
+        - type: object
+          required: [installments]
+          properties:
+            installments:
+              type: array
+              items:
+                $ref: '#/components/schemas/LoanInstallment'
+    LoanInput:
+      type: object
+      required: [name, kind, base_amount, currency, start_month, end_month]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        kind:
+          $ref: '#/components/schemas/LoanKind'
+        base_amount:
+          $ref: '#/components/schemas/Money'
+        currency:
+          $ref: '#/components/schemas/Currency'
+        start_month:
+          $ref: '#/components/schemas/Month'
+        end_month:
+          $ref: '#/components/schemas/Month'
+    LoanPatch:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+    LoanInstallmentPatch:
+      type: object
+      properties:
+        amount:
+          $ref: '#/components/schemas/Money'
+        paid:
+          type: boolean
+    LoanAdjustInput:
+      type: object
+      required: [from_month]
+      properties:
+        from_month:
+          $ref: '#/components/schemas/Month'
+        percent:
+          type: string
+          description: Porcentaje de aumento, ej. "10" o "7.5".
+          pattern: '^\d+(\.\d{1,2})?$'
+        amount:
+          $ref: '#/components/schemas/Money'
+          description: Monto fijo a sumar a cada cuota.
+      oneOf:
+        - required: [percent]
+        - required: [amount]
+
+    Subscription:
+      allOf:
+        - $ref: '#/components/schemas/MoneyFields'
+        - type: object
+          required: [id, name, charge_day, active, next_charge_date, created_by, created_at]
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            charge_day:
+              type: integer
+              minimum: 1
+              maximum: 31
+            active:
+              type: boolean
+            next_charge_date:
+              $ref: '#/components/schemas/Date'
+            created_by:
+              $ref: '#/components/schemas/UserRef'
+            created_at:
+              type: string
+              format: date-time
+    SubscriptionList:
+      type: object
+      required: [items, monthly_total_ars]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Subscription'
+        monthly_total_ars:
+          $ref: '#/components/schemas/Money'
+          description: Suma de las suscripciones activas.
+    SubscriptionInput:
+      type: object
+      required: [name, amount, currency, charge_day]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        amount:
+          $ref: '#/components/schemas/Money'
+        currency:
+          $ref: '#/components/schemas/Currency'
+        charge_day:
+          type: integer
+          minimum: 1
+          maximum: 31
+    SubscriptionPatch:
+      type: object
+      properties:
+        name:
+          type: string
+        amount:
+          $ref: '#/components/schemas/Money'
+        currency:
+          $ref: '#/components/schemas/Currency'
+        charge_day:
+          type: integer
+          minimum: 1
+          maximum: 31
+
+    DailyIndicator:
+      type: object
+      description: Todo en ARS.
+      required:
+        - date
+        - limite_hoy
+        - gastado_hoy
+        - restante_hoy
+        - over_limit
+        - over_amount
+        - breakdown
+      properties:
+        date:
+          $ref: '#/components/schemas/Date'
+        limite_hoy:
+          $ref: '#/components/schemas/Money'
+        gastado_hoy:
+          $ref: '#/components/schemas/Money'
+        restante_hoy:
+          $ref: '#/components/schemas/Money'
+          description: Negativo si se pasó.
+        over_limit:
+          type: boolean
+        over_amount:
+          $ref: '#/components/schemas/Money'
+          description: Cuánto se pasó (0 si no se pasó).
+        breakdown:
+          $ref: '#/components/schemas/DailyBreakdown'
+    DailyBreakdown:
+      type: object
+      required:
+        - income_month_ars
+        - commitments
+        - variable_budget_ars
+        - variable_spent_until_yesterday_ars
+        - remaining_days
+      properties:
+        income_month_ars:
+          $ref: '#/components/schemas/Money'
+        commitments:
+          $ref: '#/components/schemas/Commitments'
+        variable_budget_ars:
+          $ref: '#/components/schemas/Money'
+          description: ingresos − compromisos.
+        variable_spent_until_yesterday_ars:
+          $ref: '#/components/schemas/Money'
+        remaining_days:
+          type: integer
+          description: Incluye hoy.
+    Commitments:
+      type: object
+      required: [cards_ars, loans_ars, vehicle_ars, subscriptions_ars, total_ars]
+      properties:
+        cards_ars:
+          $ref: '#/components/schemas/Money'
+          description: Resúmenes con vencimiento en el mes.
+        loans_ars:
+          $ref: '#/components/schemas/Money'
+        vehicle_ars:
+          $ref: '#/components/schemas/Money'
+        subscriptions_ars:
+          $ref: '#/components/schemas/Money'
+        total_ars:
+          $ref: '#/components/schemas/Money'
+
+    CategorySpend:
+      type: object
+      required: [category_id, name, total_ars, previous_month_total_ars]
+      properties:
+        category_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        total_ars:
+          $ref: '#/components/schemas/Money'
+        previous_month_total_ars:
+          $ref: '#/components/schemas/Money'
+    MonthlySummary:
+      type: object
+      required:
+        - month
+        - spend_by_category
+        - income_ars
+        - expenses_ars
+        - previous_month_expenses_ars
+        - commitments
+        - card_future_installments_ars
+      properties:
+        month:
+          $ref: '#/components/schemas/Month'
+        spend_by_category:
+          type: array
+          description: Incluye compras con tarjeta por fecha de compra.
+          items:
+            $ref: '#/components/schemas/CategorySpend'
+        income_ars:
+          $ref: '#/components/schemas/Money'
+        expenses_ars:
+          $ref: '#/components/schemas/Money'
+        previous_month_income_ars:
+          $ref: '#/components/schemas/Money'
+        previous_month_expenses_ars:
+          $ref: '#/components/schemas/Money'
+        commitments:
+          $ref: '#/components/schemas/Commitments'
+        card_future_installments_ars:
+          $ref: '#/components/schemas/Money'
+
+    UpcomingPayment:
+      type: object
+      required: [type, name, date, amount_ars]
+      properties:
+        type:
+          type: string
+          enum: [card_statement, loan, vehicle, subscription]
+        name:
+          type: string
+        date:
+          $ref: '#/components/schemas/Date'
+        amount_ars:
+          $ref: '#/components/schemas/Money'
+        ref_id:
+          type: string
+          format: uuid
+          description: Id de la tarjeta, préstamo o suscripción.
+        month:
+          $ref: '#/components/schemas/Month'
+          description: Mes del resumen o de la cuota, si aplica.

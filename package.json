@@ -1,0 +1,10 @@
+{
+  "name": "home-wallet-api-tools",
+  "private": true,
+  "scripts": {
+    "lint:api": "redocly lint openapi.yaml"
+  },
+  "devDependencies": {
+    "@redocly/cli": "^1.25.0"
+  }
+}
