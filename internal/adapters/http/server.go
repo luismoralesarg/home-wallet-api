@@ -14,6 +14,8 @@ const userIDKey = "userID"
 type Deps struct {
 	Auth         *application.AuthService
 	ExchangeRate *application.ExchangeRateService
+	Categories   *application.CategoryService
+	Transactions *application.TransactionService
 }
 
 func NewApp(d Deps) *fiber.App {
@@ -33,6 +35,20 @@ func NewApp(d Deps) *fiber.App {
 
 	fx := &exchangeRateHandler{svc: d.ExchangeRate}
 	protected.Get("/exchange-rate/today", fx.today)
+
+	cats := &categoryHandler{svc: d.Categories}
+	protected.Get("/categories", cats.list)
+	protected.Post("/categories", cats.create)
+	protected.Get("/categories/:id", cats.get)
+	protected.Patch("/categories/:id", cats.update)
+	protected.Delete("/categories/:id", cats.delete)
+
+	txs := &transactionHandler{svc: d.Transactions}
+	protected.Get("/transactions", txs.list)
+	protected.Post("/transactions", txs.create)
+	protected.Get("/transactions/:id", txs.get)
+	protected.Patch("/transactions/:id", txs.update)
+	protected.Delete("/transactions/:id", txs.delete)
 	return app
 }
 

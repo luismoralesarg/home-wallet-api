@@ -30,8 +30,15 @@ func newError(status int, code, msg string) *apiError {
 func errorHandler(c *fiber.Ctx, err error) error {
 	var ae *apiError
 	var fe *fiber.Error
+	var ve *application.ValidationError
 	switch {
 	case errors.As(err, &ae):
+	case errors.As(err, &ve):
+		ae = newError(fiber.StatusBadRequest, "validation_error", ve.Msg)
+	case errors.Is(err, application.ErrConflict):
+		ae = newError(fiber.StatusConflict, "conflict", "La operación entra en conflicto con datos existentes")
+	case errors.Is(err, application.ErrNoExchangeRate):
+		ae = newError(fiber.StatusServiceUnavailable, "exchange_rate_unavailable", "No hay cotización disponible")
 	case errors.Is(err, application.ErrInvalidCredentials):
 		ae = newError(fiber.StatusUnauthorized, "invalid_credentials", "Usuario o contraseña incorrectos")
 	case errors.Is(err, application.ErrNotFound):
