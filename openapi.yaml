@@ -77,6 +77,8 @@ paths:
                 $ref: '#/components/schemas/ExchangeRate'
         '401':
           $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
 
   /categories:
     get:

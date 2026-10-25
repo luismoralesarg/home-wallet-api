@@ -11,6 +11,7 @@ type Config struct {
 	JWTSecret   string
 	Port        string
 	JWTTTL      time.Duration
+	DolarAPIURL string // vacío = https://dolarapi.com
 }
 
 func Load() (Config, error) {
@@ -18,6 +19,7 @@ func Load() (Config, error) {
 		DatabaseURL: os.Getenv("DATABASE_URL"),
 		JWTSecret:   os.Getenv("JWT_SECRET"),
 		Port:        getenv("PORT", "8080"),
+		DolarAPIURL: os.Getenv("DOLARAPI_URL"),
 		JWTTTL:      24 * time.Hour,
 	}
 	if v := os.Getenv("JWT_TTL"); v != "" {

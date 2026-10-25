@@ -28,4 +28,4 @@ docker compose exec db psql -U wallet -c "call sp_create_user('luis', '...')"   
 go test ./...
 ```
 
-Variables de entorno: ver `.env.example` (`DATABASE_URL`, `JWT_SECRET`, `PORT`, `JWT_TTL`).
+Variables de entorno: ver `.env.example` (`DATABASE_URL`, `JWT_SECRET`, `PORT`, `JWT_TTL`, `DOLARAPI_URL` opcional).

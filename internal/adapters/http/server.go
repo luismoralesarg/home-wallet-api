@@ -12,7 +12,8 @@ import (
 const userIDKey = "userID"
 
 type Deps struct {
-	Auth *application.AuthService
+	Auth         *application.AuthService
+	ExchangeRate *application.ExchangeRateService
 }
 
 func NewApp(d Deps) *fiber.App {
@@ -29,6 +30,9 @@ func NewApp(d Deps) *fiber.App {
 
 	protected := app.Group("", jwtMiddleware(d.Auth))
 	protected.Get("/me", h.me)
+
+	fx := &exchangeRateHandler{svc: d.ExchangeRate}
+	protected.Get("/exchange-rate/today", fx.today)
 	return app
 }
 
