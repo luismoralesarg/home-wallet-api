@@ -322,6 +322,9 @@ paths:
       tags: [cards]
       operationId: updateCard
       summary: Editar tarjeta
+      description: |
+        Cambiar `closing_day` o `due_day` aplica a las compras nuevas; los resúmenes y
+        cuotas ya generados conservan sus fechas.
       requestBody:
         required: true
         content:
@@ -341,12 +344,48 @@ paths:
       tags: [cards]
       operationId: deleteCard
       summary: Borrar tarjeta
+      description: Devuelve 409 si la tarjeta tiene compras; hay que borrarlas primero.
       responses:
         '204':
           description: Borrada
         '404':
           $ref: '#/components/responses/Error'
         '409':
+          $ref: '#/components/responses/Error'
+  /card-purchases:
+    get:
+      tags: [cards]
+      operationId: listCardPurchases
+      summary: Listar compras con tarjeta (de todas las tarjetas)
+      parameters:
+        - $ref: '#/components/parameters/MonthQuery'
+        - name: card_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: category_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: user_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: Página de compras, más recientes primero
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardPurchasePage'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
           $ref: '#/components/responses/Error'
   /cards/{id}/purchases:
     parameters:
@@ -381,6 +420,19 @@ paths:
         schema:
           type: string
           format: uuid
+    get:
+      tags: [cards]
+      operationId: getCardPurchase
+      summary: Obtener una compra con tarjeta
+      responses:
+        '200':
+          description: Compra
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardPurchase'
+        '404':
+          $ref: '#/components/responses/Error'
     patch:
       tags: [cards]
       operationId: updateCardPurchase
@@ -1105,18 +1157,25 @@ components:
       allOf:
         - $ref: '#/components/schemas/Card'
         - type: object
-          required: [open_statement, upcoming_statements, future_installments_ars]
+          required: [open_statement, closed_unpaid_statements, upcoming_statements, future_installments_ars]
           properties:
             open_statement:
               $ref: '#/components/schemas/StatementSummary'
+              description: Resumen que hoy todavía acumula compras (las de hoy caen acá).
+            closed_unpaid_statements:
+              type: array
+              description: Resúmenes ya cerrados, con saldo y sin pagar, del más viejo al más nuevo.
+              items:
+                $ref: '#/components/schemas/StatementSummary'
             upcoming_statements:
               type: array
+              description: Los 3 resúmenes siguientes al abierto.
               maxItems: 3
               items:
                 $ref: '#/components/schemas/StatementSummary'
             future_installments_ars:
               $ref: '#/components/schemas/Money'
-              description: Total comprometido en cuotas futuras (resúmenes aún no cerrados).
+              description: Total de cuotas en resúmenes que todavía no cerraron (el abierto y los siguientes).
     CardPurchase:
       allOf:
         - $ref: '#/components/schemas/MoneyFields'
@@ -1148,6 +1207,20 @@ components:
             created_at:
               type: string
               format: date-time
+    CardPurchasePage:
+      type: object
+      required: [items, total, limit, offset]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CardPurchase'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
     CardPurchaseInput:
       type: object
       required: [amount, currency, category_id]
@@ -1189,7 +1262,7 @@ components:
           format: date-time
     StatementInstallment:
       type: object
-      required: [purchase_id, description, purchased_at, installment_number, installments, amount_ars, category_id]
+      required: [purchase_id, description, purchased_at, installment_number, installments, amount_ars, original_amount, original_currency, category_id, created_by]
       properties:
         purchase_id:
           type: string

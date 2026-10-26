@@ -14,6 +14,9 @@ const userIDKey = "userID"
 type Deps struct {
 	Auth         *application.AuthService
 	ExchangeRate *application.ExchangeRateService
+	Categories   *application.CategoryService
+	Transactions *application.TransactionService
+	Cards        *application.CardService
 }
 
 func NewApp(d Deps) *fiber.App {
@@ -33,6 +36,35 @@ func NewApp(d Deps) *fiber.App {
 
 	fx := &exchangeRateHandler{svc: d.ExchangeRate}
 	protected.Get("/exchange-rate/today", fx.today)
+
+	cats := &categoryHandler{svc: d.Categories}
+	protected.Get("/categories", cats.list)
+	protected.Post("/categories", cats.create)
+	protected.Get("/categories/:id", cats.get)
+	protected.Patch("/categories/:id", cats.update)
+	protected.Delete("/categories/:id", cats.delete)
+
+	txs := &transactionHandler{svc: d.Transactions}
+	protected.Get("/transactions", txs.list)
+	protected.Post("/transactions", txs.create)
+	protected.Get("/transactions/:id", txs.get)
+	protected.Patch("/transactions/:id", txs.update)
+	protected.Delete("/transactions/:id", txs.delete)
+
+	cards := &cardHandler{svc: d.Cards}
+	protected.Get("/cards", cards.list)
+	protected.Post("/cards", cards.create)
+	protected.Get("/cards/:id", cards.get)
+	protected.Patch("/cards/:id", cards.update)
+	protected.Delete("/cards/:id", cards.delete)
+	protected.Post("/cards/:id/purchases", cards.createPurchase)
+	protected.Get("/cards/:id/purchases/:purchaseId", cards.getPurchase)
+	protected.Patch("/cards/:id/purchases/:purchaseId", cards.updatePurchase)
+	protected.Delete("/cards/:id/purchases/:purchaseId", cards.deletePurchase)
+	protected.Get("/cards/:id/statements/:month", cards.statement)
+	protected.Put("/cards/:id/statements/:month/adjustment", cards.setAdjustment)
+	protected.Post("/cards/:id/statements/:month/pay", cards.pay)
+	protected.Get("/card-purchases", cards.listPurchases)
 	return app
 }
 
