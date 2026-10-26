@@ -626,7 +626,10 @@ paths:
       tags: [loans]
       operationId: adjustLoan
       summary: Aumento a todas las cuotas no pagadas desde un mes
-      description: Se envía `percent` o `amount`, no ambos.
+      description: |
+        Se envía `percent` o `amount` (monto fijo, puede ser negativo), no ambos. Afecta solo a las cuotas
+        sin pagar desde `from_month` (inclusive). Devuelve 400 si no hay ninguna cuota para ajustar o si
+        alguna quedaría en cero o negativa; en ese caso no se modifica nada.
       requestBody:
         required: true
         content:
@@ -1347,8 +1350,12 @@ components:
                 - type: 'null'
             remaining_installments:
               type: integer
+              description: Cuotas sin pagar del mes actual en adelante.
             remaining_total_ars:
               $ref: '#/components/schemas/Money'
+              description: |
+                Suma en ARS de esas cuotas. En préstamos en USD, las cuotas sin pagar se valúan a la
+                cotización de hoy; las pagadas conservan la del día en que se marcaron.
             created_by:
               $ref: '#/components/schemas/UserRef'
             created_at:
