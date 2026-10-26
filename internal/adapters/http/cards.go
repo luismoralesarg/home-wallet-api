@@ -229,6 +229,22 @@ func (h *cardHandler) createPurchase(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(toCardPurchaseDTO(p))
 }
 
+func (h *cardHandler) getPurchase(c *fiber.Ctx) error {
+	cardID, err := pathID(c)
+	if err != nil {
+		return err
+	}
+	purchaseID, err := pathUUID(c, "purchaseId")
+	if err != nil {
+		return err
+	}
+	p, err := h.svc.GetPurchase(c.Context(), cardID, purchaseID)
+	if err != nil {
+		return err
+	}
+	return c.JSON(toCardPurchaseDTO(p))
+}
+
 func (h *cardHandler) updatePurchase(c *fiber.Ctx) error {
 	cardID, err := pathID(c)
 	if err != nil {

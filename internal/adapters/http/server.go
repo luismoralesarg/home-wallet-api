@@ -58,6 +58,7 @@ func NewApp(d Deps) *fiber.App {
 	protected.Patch("/cards/:id", cards.update)
 	protected.Delete("/cards/:id", cards.delete)
 	protected.Post("/cards/:id/purchases", cards.createPurchase)
+	protected.Get("/cards/:id/purchases/:purchaseId", cards.getPurchase)
 	protected.Patch("/cards/:id/purchases/:purchaseId", cards.updatePurchase)
 	protected.Delete("/cards/:id/purchases/:purchaseId", cards.deletePurchase)
 	protected.Get("/cards/:id/statements/:month", cards.statement)

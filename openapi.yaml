@@ -420,6 +420,19 @@ paths:
         schema:
           type: string
           format: uuid
+    get:
+      tags: [cards]
+      operationId: getCardPurchase
+      summary: Obtener una compra con tarjeta
+      responses:
+        '200':
+          description: Compra
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardPurchase'
+        '404':
+          $ref: '#/components/responses/Error'
     patch:
       tags: [cards]
       operationId: updateCardPurchase
