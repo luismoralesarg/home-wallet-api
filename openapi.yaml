@@ -1262,7 +1262,7 @@ components:
           format: date-time
     StatementInstallment:
       type: object
-      required: [purchase_id, description, purchased_at, installment_number, installments, amount_ars, category_id]
+      required: [purchase_id, description, purchased_at, installment_number, installments, amount_ars, original_amount, original_currency, category_id, created_by]
       properties:
         purchase_id:
           type: string
