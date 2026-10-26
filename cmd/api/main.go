@@ -45,6 +45,7 @@ func run() error {
 		ExchangeRate: fx,
 		Categories:   application.NewCategoryService(catRepo),
 		Transactions: application.NewTransactionService(postgres.NewTransactionRepo(pool), catRepo, fx),
+		Cards:        application.NewCardService(postgres.NewCardRepo(pool), catRepo, fx),
 	})
 
 	// Cotización: al arrancar si falta la de hoy, y todos los días a las 09:00 (Mendoza).

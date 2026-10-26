@@ -12,13 +12,25 @@ import (
 )
 
 // pathID devuelve el :id; un id que no es UUID no puede existir, así que es 404.
-func pathID(c *fiber.Ctx) (string, error) {
-	id := c.Params("id")
+func pathID(c *fiber.Ctx) (string, error) { return pathUUID(c, "id") }
+
+func pathUUID(c *fiber.Ctx, name string) (string, error) {
+	id := c.Params(name)
 	if _, err := uuid.Parse(id); err != nil {
 		return "", newError(fiber.StatusNotFound, "not_found", "No encontrado")
 	}
 	return id, nil
 }
+
+func pathMonth(c *fiber.Ctx) (domain.Month, error) {
+	m, err := domain.ParseMonth(c.Params("month"))
+	if err != nil {
+		return m, newError(fiber.StatusBadRequest, "validation_error", "month debe tener formato YYYY-MM")
+	}
+	return m, nil
+}
+
+func dateStr(t time.Time) string { return t.Format("2006-01-02") }
 
 func queryUUID(c *fiber.Ctx, name string) (*string, error) {
 	v := c.Query(name)

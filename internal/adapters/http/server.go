@@ -16,6 +16,7 @@ type Deps struct {
 	ExchangeRate *application.ExchangeRateService
 	Categories   *application.CategoryService
 	Transactions *application.TransactionService
+	Cards        *application.CardService
 }
 
 func NewApp(d Deps) *fiber.App {
@@ -49,6 +50,20 @@ func NewApp(d Deps) *fiber.App {
 	protected.Get("/transactions/:id", txs.get)
 	protected.Patch("/transactions/:id", txs.update)
 	protected.Delete("/transactions/:id", txs.delete)
+
+	cards := &cardHandler{svc: d.Cards}
+	protected.Get("/cards", cards.list)
+	protected.Post("/cards", cards.create)
+	protected.Get("/cards/:id", cards.get)
+	protected.Patch("/cards/:id", cards.update)
+	protected.Delete("/cards/:id", cards.delete)
+	protected.Post("/cards/:id/purchases", cards.createPurchase)
+	protected.Patch("/cards/:id/purchases/:purchaseId", cards.updatePurchase)
+	protected.Delete("/cards/:id/purchases/:purchaseId", cards.deletePurchase)
+	protected.Get("/cards/:id/statements/:month", cards.statement)
+	protected.Put("/cards/:id/statements/:month/adjustment", cards.setAdjustment)
+	protected.Post("/cards/:id/statements/:month/pay", cards.pay)
+	protected.Get("/card-purchases", cards.listPurchases)
 	return app
 }
 
