@@ -12,11 +12,13 @@ import (
 const userIDKey = "userID"
 
 type Deps struct {
-	Auth         *application.AuthService
-	ExchangeRate *application.ExchangeRateService
-	Categories   *application.CategoryService
-	Transactions *application.TransactionService
-	Cards        *application.CardService
+	Auth          *application.AuthService
+	ExchangeRate  *application.ExchangeRateService
+	Categories    *application.CategoryService
+	Transactions  *application.TransactionService
+	Cards         *application.CardService
+	Loans         *application.LoanService
+	Subscriptions *application.SubscriptionService
 }
 
 func NewApp(d Deps) *fiber.App {
@@ -65,6 +67,24 @@ func NewApp(d Deps) *fiber.App {
 	protected.Put("/cards/:id/statements/:month/adjustment", cards.setAdjustment)
 	protected.Post("/cards/:id/statements/:month/pay", cards.pay)
 	protected.Get("/card-purchases", cards.listPurchases)
+
+	loans := &loanHandler{svc: d.Loans}
+	protected.Get("/loans", loans.list)
+	protected.Post("/loans", loans.create)
+	protected.Get("/loans/:id", loans.get)
+	protected.Patch("/loans/:id", loans.update)
+	protected.Delete("/loans/:id", loans.delete)
+	protected.Patch("/loans/:id/installments/:month", loans.updateInstallment)
+	protected.Post("/loans/:id/adjust", loans.adjust)
+
+	subs := &subscriptionHandler{svc: d.Subscriptions}
+	protected.Get("/subscriptions", subs.list)
+	protected.Post("/subscriptions", subs.create)
+	protected.Get("/subscriptions/:id", subs.get)
+	protected.Patch("/subscriptions/:id", subs.update)
+	protected.Delete("/subscriptions/:id", subs.delete)
+	protected.Post("/subscriptions/:id/pause", subs.setActive(false))
+	protected.Post("/subscriptions/:id/resume", subs.setActive(true))
 	return app
 }
 
