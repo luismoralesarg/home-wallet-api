@@ -40,14 +40,18 @@ func run() error {
 	auth := application.NewAuthService(postgres.NewUserRepo(pool), jwt.New(cfg.JWTSecret, cfg.JWTTTL))
 	fx := application.NewExchangeRateService(postgres.NewExchangeRateRepo(pool), dolarapi.New(cfg.DolarAPIURL))
 	catRepo := postgres.NewCategoryRepo(pool)
+	cards := application.NewCardService(postgres.NewCardRepo(pool), catRepo, fx)
+	loans := application.NewLoanService(postgres.NewLoanRepo(pool), fx)
+	subscriptions := application.NewSubscriptionService(postgres.NewSubscriptionRepo(pool), fx)
 	app := http.NewApp(http.Deps{
 		Auth:          auth,
 		ExchangeRate:  fx,
 		Categories:    application.NewCategoryService(catRepo),
 		Transactions:  application.NewTransactionService(postgres.NewTransactionRepo(pool), catRepo, fx),
-		Cards:         application.NewCardService(postgres.NewCardRepo(pool), catRepo, fx),
-		Loans:         application.NewLoanService(postgres.NewLoanRepo(pool), fx),
-		Subscriptions: application.NewSubscriptionService(postgres.NewSubscriptionRepo(pool), fx),
+		Cards:         cards,
+		Loans:         loans,
+		Subscriptions: subscriptions,
+		Dashboard:     application.NewDashboardService(postgres.NewDashboardRepo(pool), cards, loans, subscriptions),
 	})
 
 	// Cotización: al arrancar si falta la de hoy, y todos los días a las 09:00 (Mendoza).

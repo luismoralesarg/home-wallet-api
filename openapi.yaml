@@ -795,6 +795,10 @@ paths:
       tags: [dashboard]
       operationId: getUpcomingPayments
       summary: Próximos pagos ordenados por fecha
+      description: |
+        Resúmenes de tarjeta sin pagar (los vencidos primero), la próxima cuota sin pagar de cada préstamo o
+        vehículo y el próximo cobro de cada suscripción activa, hasta 60 días hacia adelante. Las cuotas de
+        préstamos no tienen día de vencimiento: `date` es el último día del mes de la cuota.
       parameters:
         - name: limit
           in: query
@@ -1484,7 +1488,19 @@ components:
 
     DailyIndicator:
       type: object
-      description: Todo en ARS.
+      description: |
+        Todo en ARS.
+
+        ```
+        presupuesto_variable = ingresos_del_mes − compromisos_del_mes
+        limite_hoy = (presupuesto_variable − gastos_variables_hasta_ayer) / dias_restantes_incluyendo_hoy
+        restante_hoy = limite_hoy − gastado_hoy
+        ```
+
+        Los gastos variables son solo las transacciones de gasto en efectivo/cuenta: una compra con tarjeta
+        **no** los altera, entra por el resumen cuando vence. El límite se fija con lo gastado hasta ayer, así
+        no se mueve mientras se cargan gastos del día. Si el mes ya superó el presupuesto (o no tiene
+        ingresos), `limite_hoy` es negativo y `over_limit` es true.
       required:
         - date
         - limite_hoy
@@ -1498,6 +1514,7 @@ components:
           $ref: '#/components/schemas/Date'
         limite_hoy:
           $ref: '#/components/schemas/Money'
+          description: Puede ser negativo si el presupuesto del mes ya se agotó.
         gastado_hoy:
           $ref: '#/components/schemas/Money'
         restante_hoy:
@@ -1521,6 +1538,7 @@ components:
       properties:
         income_month_ars:
           $ref: '#/components/schemas/Money'
+          description: Ingresos del mes, incluidos los fechados más adelante dentro del mes.
         commitments:
           $ref: '#/components/schemas/Commitments'
         variable_budget_ars:
@@ -1537,13 +1555,16 @@ components:
       properties:
         cards_ars:
           $ref: '#/components/schemas/Money'
-          description: Resúmenes con vencimiento en el mes.
+          description: Resúmenes de tarjeta con vencimiento en el mes (cuotas + saldo previo), estén pagados o no.
         loans_ars:
           $ref: '#/components/schemas/Money'
+          description: Cuotas del mes de préstamos.
         vehicle_ars:
           $ref: '#/components/schemas/Money'
+          description: Cuota del mes del vehículo.
         subscriptions_ars:
           $ref: '#/components/schemas/Money'
+          description: Suscripciones activas.
         total_ars:
           $ref: '#/components/schemas/Money'
 
@@ -1567,6 +1588,7 @@ components:
         - spend_by_category
         - income_ars
         - expenses_ars
+        - previous_month_income_ars
         - previous_month_expenses_ars
         - commitments
         - card_future_installments_ars
@@ -1582,6 +1604,9 @@ components:
           $ref: '#/components/schemas/Money'
         expenses_ars:
           $ref: '#/components/schemas/Money'
+          description: |
+            Gastos del mes: transacciones de gasto más compras con tarjeta por fecha de compra (monto
+            completo), el mismo universo que `spend_by_category`. Los compromisos van aparte.
         previous_month_income_ars:
           $ref: '#/components/schemas/Money'
         previous_month_expenses_ars:
@@ -1590,6 +1615,7 @@ components:
           $ref: '#/components/schemas/Commitments'
         card_future_installments_ars:
           $ref: '#/components/schemas/Money'
+          description: Cuotas de todas las tarjetas en resúmenes que todavía no cerraron.
 
     UpcomingPayment:
       type: object

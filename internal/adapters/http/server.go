@@ -19,6 +19,7 @@ type Deps struct {
 	Cards         *application.CardService
 	Loans         *application.LoanService
 	Subscriptions *application.SubscriptionService
+	Dashboard     *application.DashboardService
 }
 
 func NewApp(d Deps) *fiber.App {
@@ -85,6 +86,11 @@ func NewApp(d Deps) *fiber.App {
 	protected.Delete("/subscriptions/:id", subs.delete)
 	protected.Post("/subscriptions/:id/pause", subs.setActive(false))
 	protected.Post("/subscriptions/:id/resume", subs.setActive(true))
+
+	dash := &dashboardHandler{svc: d.Dashboard}
+	protected.Get("/dashboard/daily", dash.daily)
+	protected.Get("/dashboard/summary", dash.summary)
+	protected.Get("/dashboard/upcoming-payments", dash.upcoming)
 	return app
 }
 
